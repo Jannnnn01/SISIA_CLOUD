@@ -31,8 +31,12 @@ const seed = async () => {
     }
   });
 
-  if (!created && admin.roleId !== adminRole.id) {
-    await admin.update({ roleId: adminRole.id, status: 'activo' });
+  if (!created) {
+    await admin.update({
+      roleId: adminRole.id,
+      status: 'activo',
+      password: await hashPassword('Admin12345*')
+    });
   }
 
   console.log('Seed inicial aplicado.');
