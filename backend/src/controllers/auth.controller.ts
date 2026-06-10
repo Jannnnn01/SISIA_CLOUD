@@ -7,7 +7,8 @@ import { validateEmailPassword } from '../validations/auth.validation';
 
 export const authController = {
   async login(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
     const validation = validateEmailPassword(email, password);
     if (validation) return fail(res, validation, 400);
 
@@ -27,7 +28,9 @@ export const authController = {
   },
 
   async register(req: Request, res: Response) {
-    const { name, email, password } = req.body;
+    const name = String(req.body.name || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
     const validation = validateEmailPassword(email, password);
     if (!name) return fail(res, 'El nombre es obligatorio', 400);
     if (validation) return fail(res, validation, 400);

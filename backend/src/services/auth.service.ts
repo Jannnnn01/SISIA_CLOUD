@@ -10,7 +10,7 @@ const publicUser = (user: User) => {
 
 export const authService = {
   async login(email: string, password: string) {
-    const user = await User.scope('withPassword').findOne({ where: { email }, include: [{ model: Role, as: 'role' }] });
+    const user = await User.scope('withPassword').findOne({ where: { email: email.trim().toLowerCase() }, include: [{ model: Role, as: 'role' }] });
     if (!user || user.status !== 'activo') return null;
 
     const valid = await comparePassword(password, user.password);
@@ -26,7 +26,7 @@ export const authService = {
     if (!role) throw new Error('Rol Usuario no configurado');
 
     const hashed = await hashPassword(password);
-    const user = await User.create({ name, email, password: hashed, roleId: role.id });
+    const user = await User.create({ name: name.trim(), email: email.trim().toLowerCase(), password: hashed, roleId: role.id });
     const fullUser = await User.findByPk(user.id, { include: [{ model: Role, as: 'role' }] });
     return fullUser;
   }

@@ -12,15 +12,20 @@ export const usersController = {
   },
 
   async create(req: Request, res: Response) {
-    const validation = validateUserPayload(req.body);
+    const payload = {
+      ...req.body,
+      name: String(req.body.name || '').trim(),
+      email: String(req.body.email || '').trim().toLowerCase()
+    };
+    const validation = validateUserPayload(payload);
     if (validation) return fail(res, validation, 400);
 
-    const exists = await User.findOne({ where: { email: req.body.email } });
+    const exists = await User.findOne({ where: { email: payload.email } });
     if (exists) return fail(res, 'El email ya está registrado', 409);
 
     const user = await User.create({
-      name: req.body.name,
-      email: req.body.email,
+      name: payload.name,
+      email: payload.email,
       password: await hashPassword(req.body.password),
       roleId: req.body.roleId,
       status: req.body.status || 'activo'
@@ -50,8 +55,8 @@ export const usersController = {
     if (!user) return fail(res, 'Usuario no encontrado', 404);
 
     await user.update({
-      name: req.body.name ?? user.name,
-      email: req.body.email ?? user.email,
+      name: req.body.name ? String(req.body.name).trim() : user.name,
+      email: req.body.email ? String(req.body.email).trim().toLowerCase() : user.email,
       roleId: req.body.roleId ?? user.roleId
     });
 

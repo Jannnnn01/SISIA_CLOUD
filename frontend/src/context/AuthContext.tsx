@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [loadUser]);
 
   const login = async (email: string, password: string) => {
-    const response = await authApi.login({ email, password });
+    const response = await authApi.login({ email: email.trim().toLowerCase(), password });
     const nextToken = response.data.data.token;
     localStorage.setItem('sisia_token', nextToken);
     setToken(nextToken);

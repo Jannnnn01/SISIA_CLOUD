@@ -21,8 +21,8 @@ export const LoginPage = () => {
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch {
-      setError('No fue posible iniciar sesión. Verifique sus credenciales.');
+    } catch (error: any) {
+      setError(error?.response?.data?.message || 'No fue posible iniciar sesión. Verifique la API y sus credenciales.');
     } finally {
       setLoading(false);
     }

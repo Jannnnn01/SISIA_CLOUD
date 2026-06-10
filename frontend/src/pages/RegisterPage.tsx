@@ -20,8 +20,8 @@ export const RegisterPage = () => {
     try {
       await register(form.name, form.email, form.password);
       navigate('/dashboard');
-    } catch {
-      setError('No fue posible crear el usuario.');
+    } catch (error: any) {
+      setError(error?.response?.data?.message || 'No fue posible crear el usuario.');
     } finally {
       setLoading(false);
     }
