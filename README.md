@@ -133,10 +133,7 @@ npm run db:migrate
 npm run db:seed
 ```
 
-## Usuario administrador de prueba
 
-- Email: `admin@sisia.com`
-- Password: `Admin12345*`
 
 Este usuario es solo para ambiente académico o demostración. En producción debe cambiarse la contraseña inmediatamente.
 
