@@ -10,6 +10,7 @@ import { controlsRoutes } from './routes/controls.routes';
 import { dashboardRoutes } from './routes/dashboard.routes';
 import { incidentsRoutes } from './routes/incidents.routes';
 import { risksRoutes } from './routes/risks.routes';
+import { rolesRoutes } from './routes/roles.routes';
 import { usersRoutes } from './routes/users.routes';
 import { success } from './utils/response';
 
@@ -27,5 +28,7 @@ app.use('/api/assets', assetsRoutes);
 app.use('/api/risks', risksRoutes);
 app.use('/api/controls', controlsRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/audit-logs', auditRoutes);
+app.use('/api/roles', rolesRoutes);
 
 app.use(errorMiddleware);
