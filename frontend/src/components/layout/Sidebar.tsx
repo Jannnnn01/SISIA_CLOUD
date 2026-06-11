@@ -1,21 +1,11 @@
-import { ClipboardList, FileWarning, Gauge, LockKeyhole, ShieldCheck, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-
-const baseItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: Gauge, roles: ['Administrador', 'Analista de Seguridad', 'Usuario'] },
-  { to: '/incidents', label: 'Incidentes', icon: FileWarning, roles: ['Administrador', 'Analista de Seguridad', 'Usuario'] },
-  { to: '/assets', label: 'Activos', icon: ClipboardList, roles: ['Administrador', 'Analista de Seguridad'] },
-  { to: '/risks', label: 'Riesgos', icon: ShieldCheck, roles: ['Administrador', 'Analista de Seguridad'] },
-  { to: '/controls', label: 'Controles', icon: LockKeyhole, roles: ['Administrador', 'Analista de Seguridad'] },
-  { to: '/users', label: 'Usuarios', icon: Users, roles: ['Administrador'] },
-  { to: '/audit', label: 'Auditoría', icon: ClipboardList, roles: ['Administrador'] }
-];
+import { navItems } from './navItems';
 
 export const Sidebar = () => {
   const { user } = useAuth();
   const role = user?.role?.name || '';
-  const items = baseItems.filter((item) => item.roles.includes(role));
+  const items = navItems.filter((item) => item.roles.includes(role));
 
   return (
     <aside className="hidden min-h-screen w-64 border-r border-slate-200 bg-white p-4 md:block">

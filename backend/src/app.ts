@@ -16,7 +16,13 @@ import { success } from './utils/response';
 
 export const app = express();
 
-app.use(cors({ origin: env.frontendUrl, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || origin === env.frontendUrl) return callback(null, true);
+    return callback(new Error('Origen no permitido por CORS'));
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => success(res, { status: 'ok' }, 'Servicio disponible'));

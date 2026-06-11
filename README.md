@@ -4,7 +4,7 @@ Sistema Seguro de Gestión de Incidentes y Activos Académicos para la asignatur
 
 ## Descripción
 
-SISIA Cloud es una aplicación web con autenticación segura, roles, gestión inicial de usuarios e incidentes, auditoría básica y módulos base para activos, riesgos y controles. Está preparada para desplegarse en Render con HTTPS y PostgreSQL cloud.
+SISIA Cloud es una aplicación web con autenticación segura, roles, gestión de usuarios, incidentes, activos, riesgos, controles, perfil de usuario y auditoría. Está preparada para desplegarse en Render con HTTPS y PostgreSQL cloud.
 
 ## Tecnologías
 
@@ -43,6 +43,8 @@ El backend expone una API REST bajo `/api`. El frontend consume esa API usando `
 - No se devuelve `password` en respuestas.
 - Manejo de errores sin exponer detalles técnicos.
 - Auditoría básica para login, registro, creación de usuario, creación de incidente y cambio de estado de incidente.
+- Edición de perfil y cambio de contraseña con validación de contraseña actual.
+- Auditoría para edición de perfil, cambio de contraseña y cierre de sesión.
 - Eliminación lógica mediante `status`.
 - Sequelize para reducir riesgo de SQL Injection.
 
@@ -112,19 +114,59 @@ Crear una base PostgreSQL en Render PostgreSQL, Railway o Supabase. Copiar la ca
 
 ## Despliegue en Render
 
-Backend:
+El repositorio incluye `render.yaml` como referencia para Blueprint, pero también puede configurarse manualmente desde el panel de Render.
 
-- Root directory: `backend`
-- Build command: `npm install && npm run build`
-- Start command: `npm start`
-- Variables: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `FRONTEND_URL`, `BCRYPT_SALT_ROUNDS`, `NODE_ENV=production`
+### Backend como Web Service
 
-Frontend:
+1. Crear un nuevo **Web Service** en Render conectado al repositorio de GitHub.
+2. Configurar:
+   - Root directory: `backend`
+   - Runtime: Node
+   - Build command: `npm install && npm run build`
+   - Start command: `npm start`
+3. Agregar variables de entorno:
 
-- Root directory: `frontend`
-- Build command: `npm install && npm run build`
-- Publish directory: `dist`
-- Variable: `VITE_API_URL=https://url-del-backend/api`
+```env
+PORT=4000
+NODE_ENV=production
+DATABASE_URL=URL_REAL_DE_NEON
+JWT_SECRET=CLAVE_SEGURA_DE_PRODUCCION_MINIMO_32_CARACTERES
+JWT_EXPIRES_IN=1d
+FRONTEND_URL=https://URL_DEL_FRONTEND_RENDER
+BCRYPT_SALT_ROUNDS=10
+```
+
+El backend usa `process.env.PORT`, conecta PostgreSQL únicamente por `DATABASE_URL`, restringe CORS a `FRONTEND_URL` y no debe depender de `localhost` en producción.
+
+### Frontend como Static Site
+
+1. Crear un nuevo **Static Site** en Render conectado al mismo repositorio.
+2. Configurar:
+   - Root directory: `frontend`
+   - Build command: `npm install && npm run build`
+   - Publish directory: `dist`
+3. Agregar variable de entorno:
+
+```env
+VITE_API_URL=https://URL_DEL_BACKEND_RENDER/api
+```
+
+Para React Router, configurar una regla de rewrite:
+
+```text
+source: /*
+destination: /index.html
+type: rewrite
+```
+
+Esta regla permite que rutas internas como `/dashboard`, `/assets` o `/profile` funcionen al recargar la página.
+
+### Conexión con Neon PostgreSQL
+
+1. Crear o usar una base PostgreSQL en Neon.
+2. Copiar la cadena de conexión SSL.
+3. Pegarla en `DATABASE_URL` del backend en Render.
+4. Ejecutar en Render Shell o localmente apuntando a esa base:
 
 Después del despliegue, ejecutar una vez en backend:
 
@@ -133,10 +175,34 @@ npm run db:migrate
 npm run db:seed
 ```
 
+### Pruebas posteriores al despliegue
+
+- Abrir el frontend público por HTTPS.
+- Confirmar que `https://URL_DEL_BACKEND_RENDER/api/health` responde.
+- Iniciar sesión con el usuario administrador de prueba.
+- Ver dashboard.
+- Crear incidente.
+- Crear activo.
+- Crear riesgo.
+- Crear control.
+- Ver auditoría.
+- Editar perfil.
+- Cerrar sesión.
+- Confirmar que frontend y backend usan HTTPS.
+- Confirmar que Neon está conectado.
+
+### Seguridad en producción
+
+- No subir archivos `.env` a GitHub.
+- Usar `JWT_SECRET` fuerte, privado y de mínimo 32 caracteres.
+- Render sirve por HTTPS.
+- Neon usa conexión PostgreSQL con SSL.
+- `FRONTEND_URL` debe ser exactamente la URL pública del frontend para que CORS no acepte orígenes no autorizados.
+
 
 
 Este usuario es solo para ambiente académico o demostración. En producción debe cambiarse la contraseña inmediatamente.
 
 ## Defensa académica
 
-El proyecto demuestra una arquitectura separada frontend/backend, uso de variables de entorno, autenticación JWT, contraseñas hasheadas, control de acceso por roles, auditoría de acciones relevantes, conexión segura a base de datos cloud y preparación para HTTPS mediante Render.
+El proyecto demuestra una arquitectura separada frontend/backend, uso de variables de entorno, autenticación JWT, contraseñas hasheadas, perfil seguro, control de acceso por roles, auditoría de acciones relevantes, conexión segura a base de datos cloud y preparación para HTTPS mediante Render.

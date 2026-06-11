@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const apiBaseUrl = import.meta.env.VITE_API_URL;
+
+if (!apiBaseUrl) {
+  throw new Error('VITE_API_URL no está configurada');
+}
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+  baseURL: apiBaseUrl
 });
 
 api.interceptors.request.use((config) => {
@@ -11,3 +17,16 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem('sisia_token');
+      if (!window.location.pathname.includes('/login')) {
+        window.dispatchEvent(new CustomEvent('sisia:session-expired'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);

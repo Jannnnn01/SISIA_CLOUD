@@ -20,7 +20,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -29,6 +30,11 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('sisia_token'));
   const [loading, setLoading] = useState(true);
+  const clearSession = useCallback(() => {
+    localStorage.removeItem('sisia_token');
+    setToken(null);
+    setUser(null);
+  }, []);
 
   const loadUser = useCallback(async () => {
     if (!localStorage.getItem('sisia_token')) {
@@ -40,17 +46,21 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       const response = await authApi.me();
       setUser(response.data.data);
     } catch {
-      localStorage.removeItem('sisia_token');
-      setToken(null);
-      setUser(null);
+      clearSession();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearSession]);
 
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  useEffect(() => {
+    const onExpired = () => clearSession();
+    window.addEventListener('sisia:session-expired', onExpired);
+    return () => window.removeEventListener('sisia:session-expired', onExpired);
+  }, [clearSession]);
 
   const login = async (email: string, password: string) => {
     const response = await authApi.login({ email: email.trim().toLowerCase(), password });
@@ -65,13 +75,20 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     await login(email, password);
   };
 
-  const logout = () => {
-    localStorage.removeItem('sisia_token');
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      if (localStorage.getItem('sisia_token')) {
+        await authApi.logout();
+      }
+    } catch {
+      // El cierre local debe ejecutarse aunque el token ya no sea válido.
+    } finally {
+      clearSession();
+      window.location.href = '/login';
+    }
   };
 
-  const value = useMemo(() => ({ user, token, loading, login, register, logout }), [user, token, loading]);
+  const value = useMemo(() => ({ user, token, loading, login, register, logout, refreshUser: loadUser }), [user, token, loading, loadUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
