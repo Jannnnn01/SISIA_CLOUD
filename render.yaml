@@ -3,7 +3,7 @@ services:
     name: sisia-cloud-backend
     env: node
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -24,7 +24,7 @@ services:
   - type: static
     name: sisia-cloud-frontend
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
