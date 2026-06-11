@@ -5,6 +5,8 @@ import { authorizeRoles } from '../middlewares/role.middleware';
 
 export const usersRoutes = Router();
 
+usersRoutes.get('/assignees', authenticate, authorizeRoles('Administrador', 'Analista de Seguridad'), usersController.assignees);
+
 usersRoutes.use(authenticate, authorizeRoles('Administrador'));
 usersRoutes.get('/', usersController.list);
 usersRoutes.post('/', usersController.create);

@@ -8,6 +8,8 @@ export const incidentsRoutes = Router();
 incidentsRoutes.use(authenticate);
 incidentsRoutes.get('/', incidentsController.list);
 incidentsRoutes.post('/', incidentsController.create);
+incidentsRoutes.patch('/:id/assign', authorizeRoles('Administrador', 'Analista de Seguridad'), incidentsController.assign);
+incidentsRoutes.patch('/:id/close', authorizeRoles('Administrador', 'Analista de Seguridad'), incidentsController.close);
 incidentsRoutes.get('/:id', incidentsController.getById);
 incidentsRoutes.put('/:id', incidentsController.update);
 incidentsRoutes.patch('/:id/status', authorizeRoles('Administrador', 'Analista de Seguridad'), incidentsController.changeStatus);
