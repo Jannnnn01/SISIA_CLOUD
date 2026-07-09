@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Op } from 'sequelize';
 import { Incident, Role, User } from '../models';
 import { auditService } from '../services/audit.service';
 import { fail, success } from '../utils/response';
@@ -11,7 +12,7 @@ const incidentIncludes = [
 
 export const incidentsController = {
   async list(req: Request, res: Response) {
-    const where = req.user?.role === 'Usuario' ? { createdById: req.user.id } : {};
+    const where = req.user?.role === 'Usuario' ? { createdById: req.user.id, status: { [Op.ne]: 'inactivo' } } : {};
     const incidents = await Incident.findAll({ where, include: incidentIncludes, order: [['id', 'DESC']] });
     return success(res, incidents);
   },
@@ -53,12 +54,17 @@ export const incidentsController = {
     const incident = await Incident.findByPk(String(req.params.id), { include: incidentIncludes });
     if (!incident) return fail(res, 'Incidente no encontrado', 404);
     if (req.user?.role === 'Usuario' && incident.createdById !== req.user.id) return fail(res, 'No tiene permisos para este incidente', 403);
+    if (req.user?.role === 'Usuario' && incident.status === 'inactivo') return fail(res, 'No tiene permisos para este incidente', 403);
     return success(res, incident);
   },
 
   async update(req: Request, res: Response) {
     const incident = await Incident.findByPk(String(req.params.id));
     if (!incident) return fail(res, 'Incidente no encontrado', 404);
+    if (incident.status === 'inactivo') return fail(res, 'No se puede modificar un incidente inactivo', 403);
+    if (['Administrador', 'Analista de Seguridad'].includes(req.user?.role || '') && incident.status === 'cerrado') {
+      return fail(res, 'No se puede editar un incidente cerrado', 403);
+    }
     if (req.user?.role === 'Usuario' && (incident.createdById !== req.user.id || incident.status !== 'pendiente')) {
       return fail(res, 'Solo puede editar incidentes propios en estado pendiente', 403);
     }
@@ -121,6 +127,7 @@ export const incidentsController = {
   async assign(req: Request, res: Response) {
     const incident = await Incident.findByPk(String(req.params.id));
     if (!incident) return fail(res, 'Incidente no encontrado', 404);
+    if (['cerrado', 'inactivo'].includes(incident.status)) return fail(res, 'No se puede asignar un incidente cerrado o inactivo', 403);
 
     const assignedToId = req.body.assignedToId ? Number(req.body.assignedToId) : null;
     if (assignedToId) {
@@ -147,6 +154,7 @@ export const incidentsController = {
   async close(req: Request, res: Response) {
     const incident = await Incident.findByPk(String(req.params.id));
     if (!incident) return fail(res, 'Incidente no encontrado', 404);
+    if (incident.status === 'inactivo') return fail(res, 'No se puede cerrar un incidente inactivo', 403);
 
     await incident.update({
       status: 'cerrado',

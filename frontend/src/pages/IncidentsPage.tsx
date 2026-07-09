@@ -21,7 +21,7 @@ interface IncidentRow {
   description: string;
   category: string;
   priority: 'baja' | 'media' | 'alta' | 'critica';
-  status: 'pendiente' | 'en_proceso' | 'cerrado';
+  status: 'pendiente' | 'en_proceso' | 'cerrado' | 'inactivo';
   createdById: number;
   assignedToId: number | null;
   technicalObservation: string | null;
@@ -129,6 +129,7 @@ export const IncidentsPage = () => {
   };
 
   const changeStatus = async (incident: IncidentRow, status: string) => {
+    if (status === 'inactivo' && !window.confirm(`¿Inactivar el incidente ${incident.title}?`)) return;
     setError('');
     setMessage('');
     try {
@@ -210,6 +211,7 @@ export const IncidentsPage = () => {
               <option value="pendiente">pendiente</option>
               <option value="en_proceso">en proceso</option>
               <option value="cerrado">cerrado</option>
+              {canManage && <option value="inactivo">inactivo</option>}
             </select>
             <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
               <option value="">Todas las prioridades</option>
@@ -240,8 +242,10 @@ export const IncidentsPage = () => {
                   <td className="min-w-72 space-y-2 py-2">
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" className="bg-slate-700" onClick={() => setSelected(incident)}>Detalle</Button>
-                      {incident.status !== 'cerrado' && <Button type="button" className="bg-slate-700" onClick={() => edit(incident)}>Editar</Button>}
-                      {canManage && incident.status !== 'cerrado' && <Button type="button" className="bg-emerald-700" onClick={() => close(incident)}>Cerrar</Button>}
+                      {((canManage && !['cerrado', 'inactivo'].includes(incident.status)) || (!canManage && incident.createdById === user?.id && incident.status === 'pendiente')) && (
+                        <Button type="button" className="bg-slate-700" onClick={() => edit(incident)}>Editar</Button>
+                      )}
+                      {canManage && !['cerrado', 'inactivo'].includes(incident.status) && <Button type="button" className="bg-emerald-700" onClick={() => close(incident)}>Cerrar</Button>}
                     </div>
                     {canManage && (
                       <div className="grid gap-2 md:grid-cols-2">
@@ -249,8 +253,9 @@ export const IncidentsPage = () => {
                           <option value="pendiente">pendiente</option>
                           <option value="en_proceso">en proceso</option>
                           <option value="cerrado">cerrado</option>
+                          <option value="inactivo">inactivo</option>
                         </select>
-                        <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" value={incident.assignedToId || ''} onChange={(event) => assign(incident, event.target.value)}>
+                        <select className="rounded-md border border-slate-300 px-2 py-1 text-xs" disabled={['cerrado', 'inactivo'].includes(incident.status)} value={incident.assignedToId || ''} onChange={(event) => assign(incident, event.target.value)}>
                           <option value="">Sin responsable</option>
                           {assignees.map((assignee) => <option key={assignee.id} value={assignee.id}>{assignee.name}</option>)}
                         </select>

@@ -11,9 +11,10 @@ export interface UserAttributes {
   password: string;
   roleId: number;
   status: UserStatus;
+  tokenVersion: number;
 }
 
-type UserCreationAttributes = Optional<UserAttributes, 'id' | 'status'>;
+type UserCreationAttributes = Optional<UserAttributes, 'id' | 'status' | 'tokenVersion'>;
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -22,6 +23,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public password!: string;
   public roleId!: number;
   public status!: UserStatus;
+  public tokenVersion!: number;
 }
 
 User.init(
@@ -35,13 +37,14 @@ User.init(
       type: useEmbeddedDatabase ? DataTypes.STRING(20) : DataTypes.ENUM('activo', 'inactivo'),
       allowNull: false,
       defaultValue: 'activo'
-    }
+    },
+    tokenVersion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 }
   },
   {
     sequelize,
     tableName: 'users',
     timestamps: true,
-    defaultScope: { attributes: { exclude: ['password'] } },
-    scopes: { withPassword: { attributes: { include: ['password'] } } }
+    defaultScope: { attributes: { exclude: ['password', 'tokenVersion'] } },
+    scopes: { withPassword: { attributes: { include: ['password', 'tokenVersion'] } } }
   }
 );

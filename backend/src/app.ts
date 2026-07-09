@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import helmet from 'helmet';
 import { env } from './config/env';
 import { errorMiddleware } from './middlewares/error.middleware';
 import './models';
@@ -16,9 +17,11 @@ import { success } from './utils/response';
 
 export const app = express();
 
+app.set('trust proxy', 1);
+app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin === env.frontendUrl) return callback(null, true);
+    if (!origin || env.allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Origen no permitido por CORS'));
   },
   credentials: true

@@ -14,7 +14,11 @@ const normalizeControl = (body: any) => ({
 const validateControl = async (payload: ReturnType<typeof normalizeControl>) => {
   if (!payload.riskId) return 'El riesgo es obligatorio';
   if (!payload.name) return 'El nombre del control es obligatorio';
+  if (payload.name.length > 140) return 'El nombre del control no puede superar 140 caracteres';
   if (!payload.type) return 'El tipo de control es obligatorio';
+  if (payload.type.length > 60) return 'El tipo de control no puede superar 60 caracteres';
+  if (payload.description && payload.description.length > 2000) return 'La descripción no puede superar 2000 caracteres';
+  if (Number.isNaN(payload.riskId)) return 'Riesgo inválido';
   const risk = await Risk.findByPk(payload.riskId);
   if (!risk || risk.status !== 'activo') return 'Riesgo inválido o inactivo';
   return null;

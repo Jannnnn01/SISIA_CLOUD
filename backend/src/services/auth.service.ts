@@ -5,6 +5,7 @@ import { signToken } from '../utils/jwt';
 const publicUser = (user: User) => {
   const json = user.toJSON() as unknown as Record<string, unknown>;
   delete json.password;
+  delete json.tokenVersion;
   return json;
 };
 
@@ -17,7 +18,7 @@ export const authService = {
     if (!valid) return null;
 
     const role = (user as any).role?.name || 'Usuario';
-    const token = signToken({ id: user.id, email: user.email, role });
+    const token = signToken({ id: user.id, email: user.email, role, tokenVersion: user.tokenVersion });
     return { token, user: publicUser(user) };
   },
 

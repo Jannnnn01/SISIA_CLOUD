@@ -1,7 +1,11 @@
 import '../models';
 import { sequelize } from '../config/database';
+import { env } from '../config/env';
 import { Role, User } from '../models';
 import { hashPassword } from '../utils/password';
+import { validatePasswordPolicy } from '../validations/password.validation';
+
+const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 export const seedInitialData = async () => {
   await sequelize.authenticate();
@@ -21,22 +25,42 @@ export const seedInitialData = async () => {
   const adminRole = await Role.findOne({ where: { name: 'Administrador' } });
   if (!adminRole) throw new Error('No se pudo crear el rol Administrador');
 
-  const admin = await User.scope('withPassword').findOne({ where: { email: 'admin@sisia.com' } });
+  const adminName = env.adminName.trim();
+  const adminEmail = env.adminEmail.trim().toLowerCase();
+  const adminPassword = env.adminPassword;
 
-  if (!admin) {
-    await User.create({
-      name: 'Administrador',
-      email: 'admin@sisia.com',
-      password: await hashPassword('Admin12345*'),
+  if (!adminName || !adminEmail || !adminPassword) {
+    throw new Error('ADMIN_NAME, ADMIN_EMAIL y ADMIN_PASSWORD son obligatorios para ejecutar el seed');
+  }
+  if (!validateEmail(adminEmail)) {
+    throw new Error('ADMIN_EMAIL no tiene formato válido');
+  }
+  const passwordError = validatePasswordPolicy(adminPassword);
+  if (passwordError) {
+    throw new Error(`ADMIN_PASSWORD inválido: ${passwordError}`);
+  }
+
+  const [admin, created] = await User.findOrCreate({
+    where: { email: adminEmail },
+    defaults: {
+      name: adminName,
+      email: adminEmail,
+      password: await hashPassword(adminPassword),
       roleId: adminRole.id,
       status: 'activo'
-    });
-  } else {
+    }
+  });
+
+  if (!created) {
+    const shouldRevoke = admin.roleId !== adminRole.id || admin.status !== 'activo';
     await admin.update({
       roleId: adminRole.id,
       status: 'activo',
-      password: await hashPassword('Admin12345*')
+      ...(shouldRevoke ? { tokenVersion: admin.tokenVersion + 1 } : {})
     });
+    console.log('Usuario administrador existente verificado. La contraseña no fue modificada.');
+  } else {
+    console.log('Usuario administrador inicial creado desde variables de entorno.');
   }
 };
 

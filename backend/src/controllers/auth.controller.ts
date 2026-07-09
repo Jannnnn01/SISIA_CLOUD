@@ -5,6 +5,7 @@ import { authService } from '../services/auth.service';
 import { fail, success } from '../utils/response';
 import { comparePassword, hashPassword } from '../utils/password';
 import { validateEmailPassword } from '../validations/auth.validation';
+import { validatePasswordPolicy } from '../validations/password.validation';
 
 export const authController = {
   async login(req: Request, res: Response) {
@@ -14,7 +15,17 @@ export const authController = {
     if (validation) return fail(res, validation, 400);
 
     const result = await authService.login(email, password);
-    if (!result) return fail(res, 'Credenciales inválidas', 401);
+    if (!result) {
+      await auditService.log({
+        userId: null,
+        action: 'LOGIN_FAILED',
+        module: 'auth',
+        recordId: null,
+        description: 'Intento de inicio de sesión fallido',
+        req
+      });
+      return fail(res, 'Credenciales inválidas', 401);
+    }
 
     await auditService.log({
       userId: result.user.id as number,
@@ -35,6 +46,8 @@ export const authController = {
     const validation = validateEmailPassword(email, password);
     if (!name) return fail(res, 'El nombre es obligatorio', 400);
     if (validation) return fail(res, validation, 400);
+    const passwordError = validatePasswordPolicy(password);
+    if (passwordError) return fail(res, passwordError, 400);
 
     const exists = await User.findOne({ where: { email } });
     if (exists) return fail(res, 'El email ya está registrado', 409);
@@ -84,7 +97,8 @@ export const authController = {
     const currentPassword = String(req.body.currentPassword || '');
     const newPassword = String(req.body.newPassword || '');
     if (!currentPassword || !newPassword) return fail(res, 'Contraseña actual y nueva contraseña son obligatorias', 400);
-    if (newPassword.length < 8) return fail(res, 'La nueva contraseña debe tener mínimo 8 caracteres', 400);
+    const passwordError = validatePasswordPolicy(newPassword);
+    if (passwordError) return fail(res, passwordError, 400);
 
     const user = await User.scope('withPassword').findByPk(req.user?.id);
     if (!user) return fail(res, 'Usuario no encontrado', 404);
@@ -92,7 +106,7 @@ export const authController = {
     const valid = await comparePassword(currentPassword, user.password);
     if (!valid) return fail(res, 'La contraseña actual no es correcta', 400);
 
-    await user.update({ password: await hashPassword(newPassword) });
+    await user.update({ password: await hashPassword(newPassword), tokenVersion: user.tokenVersion + 1 });
     await auditService.log({
       userId: user.id,
       action: 'PASSWORD_CHANGED',
@@ -101,17 +115,37 @@ export const authController = {
       description: 'Cambio de contraseña',
       req
     });
+    await auditService.log({
+      userId: user.id,
+      action: 'SESSION_REVOKED',
+      module: 'auth',
+      recordId: user.id,
+      description: 'Sesión revocada por cambio de contraseña',
+      req
+    });
 
     return success(res, null, 'Contraseña actualizada');
   },
 
   async logout(req: Request, res: Response) {
+    const user = await User.findByPk(req.user?.id);
+    if (user) {
+      await user.update({ tokenVersion: user.tokenVersion + 1 });
+    }
     await auditService.log({
       userId: req.user?.id,
       action: 'LOGOUT',
       module: 'auth',
       recordId: req.user?.id,
       description: 'Cierre de sesión',
+      req
+    });
+    await auditService.log({
+      userId: req.user?.id,
+      action: 'SESSION_REVOKED',
+      module: 'auth',
+      recordId: req.user?.id,
+      description: 'Sesión revocada',
       req
     });
 
