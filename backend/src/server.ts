@@ -1,10 +1,16 @@
 import { app } from './app';
 import { sequelize } from './config/database';
-import { env } from './config/env';
+import { env, useEmbeddedDatabase } from './config/env';
+import { seedInitialData } from './database/seed';
 
 const start = async () => {
   try {
     await sequelize.authenticate();
+    if (useEmbeddedDatabase) {
+      await sequelize.sync();
+      await seedInitialData();
+      console.log('Base de datos embebida preparada para desarrollo');
+    }
     app.listen(env.port, () => {
       console.log(`SISIA Cloud backend escuchando en puerto ${env.port}`);
     });

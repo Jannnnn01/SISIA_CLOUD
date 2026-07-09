@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const requiredEnv = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'];
+const requiredEnv = ['JWT_SECRET', 'FRONTEND_URL'];
 
 for (const key of requiredEnv) {
   if (!process.env[key]) {
@@ -22,6 +22,8 @@ export const env = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS || 10)
 };
+
+export const useEmbeddedDatabase = env.nodeEnv === 'development' && !env.databaseUrl;
 
 try {
   new URL(env.frontendUrl);
