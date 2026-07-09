@@ -12,6 +12,7 @@ const defaultDevelopmentAdmin = {
   password: 'Admin12345*'
 };
 
+
 export const seedInitialData = async () => {
   await sequelize.authenticate();
   await sequelize.sync();
