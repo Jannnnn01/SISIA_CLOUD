@@ -24,7 +24,11 @@ const normalizeRisk = (body: any) => {
 const validateRisk = async (payload: ReturnType<typeof normalizeRisk>) => {
   if (!payload.assetId) return 'El activo es obligatorio';
   if (!payload.threat) return 'La amenaza es obligatoria';
+  if (payload.threat.length > 160) return 'La amenaza no puede superar 160 caracteres';
   if (!payload.vulnerability) return 'La vulnerabilidad es obligatoria';
+  if (payload.vulnerability.length > 160) return 'La vulnerabilidad no puede superar 160 caracteres';
+  if (payload.mitigationPlan && payload.mitigationPlan.length > 2000) return 'El plan de mitigación no puede superar 2000 caracteres';
+  if (Number.isNaN(payload.assetId) || Number.isNaN(payload.probability) || Number.isNaN(payload.impact)) return 'Datos numéricos inválidos';
   if (!Number.isInteger(payload.probability) || payload.probability < 1 || payload.probability > 5) return 'La probabilidad debe estar entre 1 y 5';
   if (!Number.isInteger(payload.impact) || payload.impact < 1 || payload.impact > 5) return 'El impacto debe estar entre 1 y 5';
   const asset = await Asset.findByPk(payload.assetId);

@@ -9,8 +9,8 @@ import { useAuth } from '../hooks/useAuth';
 export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@sisia.com');
-  const [password, setPassword] = useState('Admin12345*');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 

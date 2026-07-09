@@ -4,62 +4,70 @@ Sistema Seguro de Gestión de Incidentes y Activos Académicos para la asignatur
 
 ## Descripción
 
-SISIA Cloud es una aplicación web con autenticación segura, roles, gestión de usuarios, incidentes, activos, riesgos, controles, perfil de usuario y auditoría. Está preparada para desplegarse en Render con HTTPS y PostgreSQL cloud.
+SISIA Cloud es una aplicación web con autenticación segura, roles, usuarios, incidentes, activos, riesgos, controles, perfil de usuario y auditoría. Está preparada para desplegarse en Render con frontend estático, backend Node.js y PostgreSQL cloud en Neon.
 
 ## Tecnologías
 
-- Frontend: React, Vite, TypeScript, Tailwind CSS, Axios, React Router.
-- Backend: Node.js, Express, TypeScript, Sequelize, PostgreSQL, JWT, bcrypt, cors, dotenv.
-- Base de datos: PostgreSQL cloud mediante `DATABASE_URL`.
+- Frontend: React, Vite, TypeScript, Tailwind CSS, Axios y React Router.
+- Backend: Node.js, Express, TypeScript, Sequelize, PostgreSQL, JWT, bcrypt, Helmet, CORS y rate limiting.
+- Base de datos: PostgreSQL mediante `DATABASE_URL`.
 - Hosting objetivo: Render.
 
-## Arquitectura
+## Estructura
 
 ```text
 sisia-cloud/
   backend/
   frontend/
   docs/
+  render.yaml
   README.md
-  .gitignore
 ```
 
-El backend expone una API REST bajo `/api`. El frontend consume esa API usando `VITE_API_URL`. Las credenciales, secretos, URLs y configuración por entorno se manejan en archivos `.env`, no versionados.
+El backend expone una API REST bajo `/api`. El frontend consume esa API usando `VITE_API_URL`. Las credenciales, secretos y URLs se configuran por variables de entorno y no deben subirse al repositorio.
 
 ## Roles
 
-- Administrador: acceso total, usuarios, incidentes, activos, riesgos, controles y auditoría.
-- Analista de Seguridad: gestiona incidentes, activos, riesgos y controles.
+- Administrador: acceso total a usuarios, incidentes, activos, riesgos, controles y auditoría.
+- Analista de Seguridad: gestión operativa de incidentes, activos, riesgos y controles.
 - Usuario: crea incidentes, consulta sus propios incidentes y actualiza su perfil.
 
-## Seguridad implementada
+## Seguridad Implementada
 
-- Hash de contraseñas con bcrypt.
-- JWT con expiración configurable.
-- Middleware de autenticación.
-- Middleware de autorización por roles.
-- CORS configurado con `FRONTEND_URL`.
-- Validaciones básicas en backend.
-- No se devuelve `password` en respuestas.
-- Manejo de errores sin exponer detalles técnicos.
-- Auditoría básica para login, registro, creación de usuario, creación de incidente y cambio de estado de incidente.
-- Edición de perfil y cambio de contraseña con validación de contraseña actual.
-- Auditoría para edición de perfil, cambio de contraseña y cierre de sesión.
-- Eliminación lógica mediante `status`.
-- Sequelize para reducir riesgo de SQL Injection.
+- Contraseñas hasheadas con bcrypt.
+- Política de contraseña: mínimo 10 caracteres, máximo 128, mayúscula, minúscula, número, carácter especial y sin espacios.
+- JWT con expiración y `tokenVersion` para revocar sesiones.
+- El backend no confía en el rol incluido en el token: consulta usuario y rol actuales en PostgreSQL.
+- Usuarios inactivos no pueden iniciar sesión ni seguir usando tokens antiguos.
+- Helmet para cabeceras HTTP de seguridad.
+- Rate limiting para login y registro.
+- CORS restringido por `ALLOWED_ORIGINS` o `FRONTEND_URL`; no se permite `*`.
+- No se devuelve `password` ni `tokenVersion` en respuestas públicas.
+- Eliminación lógica mediante `status`; no se borran registros de negocio físicamente.
+- Auditoría de login exitoso/fallido, registro, logout, revocación de sesión, cambios de contraseña, cambios de rol/estado y operaciones sobre incidentes, activos, riesgos y controles.
+- Manejo de errores con mensajes funcionales, sin exponer trazas técnicas al usuario.
 
-## Variables de entorno
+## Variables de Entorno
 
 Backend: copiar `backend/.env.example` a `backend/.env`.
 
 ```env
 PORT=4000
 NODE_ENV=development
-DATABASE_URL=postgres://usuario:password:host:5432/base
-JWT_SECRET=definir_un_secreto_seguro_fuera_del_codigo
+DATABASE_URL=postgres://usuario:password@host:5432/base?sslmode=require
+JWT_SECRET=definir_un_secreto_seguro_minimo_32_caracteres
 JWT_EXPIRES_IN=1d
 FRONTEND_URL=http://localhost:5173
+ALLOWED_ORIGINS=http://localhost:5173
 BCRYPT_SALT_ROUNDS=10
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin.temporal@example.com
+ADMIN_PASSWORD=Cambiar_Esta_Clave_123*
+LOGIN_RATE_LIMIT_WINDOW_MINUTES=15
+LOGIN_RATE_LIMIT_MAX=5
+REGISTER_RATE_LIMIT_WINDOW_MINUTES=60
+REGISTER_RATE_LIMIT_MAX=10
+TEST_DATABASE_URL=
 ```
 
 Frontend: copiar `frontend/.env.example` a `frontend/.env`.
@@ -68,7 +76,7 @@ Frontend: copiar `frontend/.env.example` a `frontend/.env`.
 VITE_API_URL=http://localhost:4000/api
 ```
 
-## Instalación local
+## Instalación Local
 
 Backend:
 
@@ -96,6 +104,7 @@ Backend:
 npm run dev
 npm run build
 npm start
+npm run test:run
 npm run db:migrate
 npm run db:seed
 ```
@@ -108,23 +117,42 @@ npm run build
 npm run preview
 ```
 
-## PostgreSQL cloud
+## Usuario Administrador de Prueba
 
-Crear una base PostgreSQL en Render PostgreSQL, Railway o Supabase. Copiar la cadena de conexión en `DATABASE_URL`. El backend usa únicamente esa variable para conectarse.
+El usuario administrador se crea con `npm run db:seed` usando estas variables:
+
+- `ADMIN_NAME`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+
+No hay credenciales reales quemadas en el código. Para una defensa académica se puede usar un administrador temporal definido en `.env`, y cambiar o eliminar esa cuenta después de la demostración.
+
+## PostgreSQL Cloud con Neon
+
+1. Crear una base PostgreSQL en Neon.
+2. Copiar la cadena de conexión con SSL.
+3. Pegarla como `DATABASE_URL` en el backend.
+4. Ejecutar migración y seed apuntando a esa base:
+
+```bash
+cd backend
+npm run db:migrate
+npm run db:seed
+```
 
 ## Despliegue en Render
 
-El repositorio incluye `render.yaml` como referencia para Blueprint, pero también puede configurarse manualmente desde el panel de Render.
+El repositorio incluye `render.yaml` como referencia. También se puede configurar manualmente.
 
 ### Backend como Web Service
 
-1. Crear un nuevo **Web Service** en Render conectado al repositorio de GitHub.
+1. Crear un Web Service conectado al repositorio.
 2. Configurar:
    - Root directory: `backend`
    - Runtime: Node
-   - Build command: `npm install && npm run build`
+   - Build command: `npm install --include=dev && npm run build`
    - Start command: `npm start`
-3. Agregar variables de entorno:
+3. Agregar variables:
 
 ```env
 PORT=4000
@@ -133,25 +161,33 @@ DATABASE_URL=URL_REAL_DE_NEON
 JWT_SECRET=CLAVE_SEGURA_DE_PRODUCCION_MINIMO_32_CARACTERES
 JWT_EXPIRES_IN=1d
 FRONTEND_URL=https://URL_DEL_FRONTEND_RENDER
+ALLOWED_ORIGINS=https://URL_DEL_FRONTEND_RENDER
 BCRYPT_SALT_ROUNDS=10
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin.temporal@example.com
+ADMIN_PASSWORD=Cambiar_Esta_Clave_123*
+LOGIN_RATE_LIMIT_WINDOW_MINUTES=15
+LOGIN_RATE_LIMIT_MAX=5
+REGISTER_RATE_LIMIT_WINDOW_MINUTES=60
+REGISTER_RATE_LIMIT_MAX=10
 ```
 
-El backend usa `process.env.PORT`, conecta PostgreSQL únicamente por `DATABASE_URL`, restringe CORS a `FRONTEND_URL` y no debe depender de `localhost` en producción.
+El backend usa `process.env.PORT`, conecta PostgreSQL solo por `DATABASE_URL`, restringe CORS y no depende de `localhost` en producción.
 
 ### Frontend como Static Site
 
-1. Crear un nuevo **Static Site** en Render conectado al mismo repositorio.
+1. Crear un Static Site conectado al repositorio.
 2. Configurar:
    - Root directory: `frontend`
    - Build command: `npm install && npm run build`
    - Publish directory: `dist`
-3. Agregar variable de entorno:
+3. Agregar variable:
 
 ```env
 VITE_API_URL=https://URL_DEL_BACKEND_RENDER/api
 ```
 
-Para React Router, configurar una regla de rewrite:
+Para React Router, configurar rewrite:
 
 ```text
 source: /*
@@ -159,50 +195,29 @@ destination: /index.html
 type: rewrite
 ```
 
-Esta regla permite que rutas internas como `/dashboard`, `/assets` o `/profile` funcionen al recargar la página.
+## Pruebas Posteriores al Despliegue
 
-### Conexión con Neon PostgreSQL
-
-1. Crear o usar una base PostgreSQL en Neon.
-2. Copiar la cadena de conexión SSL.
-3. Pegarla en `DATABASE_URL` del backend en Render.
-4. Ejecutar en Render Shell o localmente apuntando a esa base:
-
-Después del despliegue, ejecutar una vez en backend:
-
-```bash
-npm run db:migrate
-npm run db:seed
-```
-
-### Pruebas posteriores al despliegue
-
-- Abrir el frontend público por HTTPS.
+- Abrir el frontend por HTTPS.
 - Confirmar que `https://URL_DEL_BACKEND_RENDER/api/health` responde.
-- Iniciar sesión con el usuario administrador de prueba.
+- Iniciar sesión con el administrador creado por seed.
 - Ver dashboard.
-- Crear incidente.
-- Crear activo.
-- Crear riesgo.
-- Crear control.
+- Crear incidente, activo, riesgo y control.
 - Ver auditoría.
 - Editar perfil.
+- Cambiar contraseña y volver a iniciar sesión.
 - Cerrar sesión.
 - Confirmar que frontend y backend usan HTTPS.
 - Confirmar que Neon está conectado.
 
-### Seguridad en producción
+## Notas de Seguridad
 
-- No subir archivos `.env` a GitHub.
-- Usar `JWT_SECRET` fuerte, privado y de mínimo 32 caracteres.
+- No subir `.env` a GitHub.
+- `JWT_SECRET` debe ser privado, fuerte y de mínimo 32 caracteres en producción.
 - Render sirve por HTTPS.
-- Neon usa conexión PostgreSQL con SSL.
-- `FRONTEND_URL` debe ser exactamente la URL pública del frontend para que CORS no acepte orígenes no autorizados.
+- Neon usa PostgreSQL con SSL.
+- `ALLOWED_ORIGINS` debe contener solo dominios confiables.
+- El frontend guarda el token en `localStorage` para simplicidad académica. Como mejora futura para producción, se recomienda migrar a cookies `HttpOnly`, `Secure` y `SameSite`.
 
+## Defensa Académica
 
-
-Este usuario es solo para ambiente académico o demostración. En producción debe cambiarse la contraseña inmediatamente.
-
-## Defensa académica
-
-El proyecto demuestra una arquitectura separada frontend/backend, uso de variables de entorno, autenticación JWT, contraseñas hasheadas, perfil seguro, control de acceso por roles, auditoría de acciones relevantes, conexión segura a base de datos cloud y preparación para HTTPS mediante Render.
+El proyecto demuestra separación frontend/backend, variables de entorno, autenticación JWT, revocación de sesiones, contraseñas hasheadas, control de acceso por roles, auditoría, eliminación lógica, conexión segura a PostgreSQL cloud y despliegue preparado para HTTPS mediante Render.

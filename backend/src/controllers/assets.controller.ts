@@ -5,11 +5,19 @@ import { fail, success } from '../utils/response';
 
 const validateAsset = (payload: ReturnType<typeof normalizeAsset>) => {
   if (!payload.name) return 'El nombre del activo es obligatorio';
+  if (payload.name.length > 140) return 'El nombre del activo no puede superar 140 caracteres';
   if (!payload.type) return 'El tipo de activo es obligatorio';
+  if (payload.type.length > 80) return 'El tipo de activo no puede superar 80 caracteres';
   if (!payload.owner) return 'El propietario es obligatorio';
+  if (payload.owner.length > 120) return 'El propietario no puede superar 120 caracteres';
   if (!payload.confidentialityLevel) return 'El nivel de confidencialidad es obligatorio';
   if (!payload.integrityLevel) return 'El nivel de integridad es obligatorio';
   if (!payload.availabilityLevel) return 'El nivel de disponibilidad es obligatorio';
+  if (payload.description && payload.description.length > 2000) return 'La descripción no puede superar 2000 caracteres';
+  const levels = ['bajo', 'medio', 'alto'];
+  if (!levels.includes(payload.confidentialityLevel) || !levels.includes(payload.integrityLevel) || !levels.includes(payload.availabilityLevel)) {
+    return 'Los niveles de seguridad deben ser bajo, medio o alto';
+  }
   return null;
 };
 

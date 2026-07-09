@@ -1,5 +1,6 @@
 import { createContext, PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
 import { authApi } from '../api/auth.api';
+import { SESSION_TOKEN_KEY } from '../api/session';
 
 export interface Role {
   id: number;
@@ -28,16 +29,16 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('sisia_token'));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(SESSION_TOKEN_KEY));
   const [loading, setLoading] = useState(true);
   const clearSession = useCallback(() => {
-    localStorage.removeItem('sisia_token');
+    localStorage.removeItem(SESSION_TOKEN_KEY);
     setToken(null);
     setUser(null);
   }, []);
 
   const loadUser = useCallback(async () => {
-    if (!localStorage.getItem('sisia_token')) {
+    if (!localStorage.getItem(SESSION_TOKEN_KEY)) {
       setLoading(false);
       return;
     }
@@ -65,7 +66,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const login = async (email: string, password: string) => {
     const response = await authApi.login({ email: email.trim().toLowerCase(), password });
     const nextToken = response.data.data.token;
-    localStorage.setItem('sisia_token', nextToken);
+    localStorage.setItem(SESSION_TOKEN_KEY, nextToken);
     setToken(nextToken);
     setUser(response.data.data.user);
   };
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const logout = async () => {
     try {
-      if (localStorage.getItem('sisia_token')) {
+      if (localStorage.getItem(SESSION_TOKEN_KEY)) {
         await authApi.logout();
       }
     } catch {

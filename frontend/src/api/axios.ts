@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { SESSION_TOKEN_KEY } from './session';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL;
 
@@ -11,7 +12,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('sisia_token');
+  const token = localStorage.getItem(SESSION_TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -22,7 +23,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem('sisia_token');
+      localStorage.removeItem(SESSION_TOKEN_KEY);
       if (!window.location.pathname.includes('/login')) {
         window.dispatchEvent(new CustomEvent('sisia:session-expired'));
       }
