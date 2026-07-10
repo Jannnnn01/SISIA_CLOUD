@@ -4,6 +4,7 @@ import { Role, User } from '../models';
 import { auditService } from '../services/audit.service';
 import { hashPassword } from '../utils/password';
 import { fail, success } from '../utils/response';
+import { nextTokenVersion } from '../utils/session';
 import { validateUserPayload } from '../validations/user.validation';
 
 export const usersController = {
@@ -65,7 +66,7 @@ export const usersController = {
   },
 
   async update(req: Request, res: Response) {
-    const user = await User.findByPk(String(req.params.id));
+    const user = await User.scope('withPassword').findByPk(String(req.params.id));
     if (!user) return fail(res, 'Usuario no encontrado', 404);
 
     const payload = {
@@ -93,7 +94,7 @@ export const usersController = {
       roleId: payload.roleId,
       status: ['activo', 'inactivo'].includes(req.body.status) ? req.body.status : user.status,
       ...(payload.password ? { password: await hashPassword(payload.password) } : {}),
-      ...(roleChanged || passwordChanged || statusChanged ? { tokenVersion: user.tokenVersion + 1 } : {})
+      ...(roleChanged || passwordChanged || statusChanged ? { tokenVersion: nextTokenVersion(user.tokenVersion) } : {})
     });
 
     await auditService.log({
@@ -130,11 +131,11 @@ export const usersController = {
   },
 
   async changeStatus(req: Request, res: Response) {
-    const user = await User.findByPk(String(req.params.id));
+    const user = await User.scope('withPassword').findByPk(String(req.params.id));
     if (!user) return fail(res, 'Usuario no encontrado', 404);
     if (!['activo', 'inactivo'].includes(req.body.status)) return fail(res, 'Estado inválido', 400);
 
-    await user.update({ status: req.body.status, tokenVersion: user.tokenVersion + 1 });
+    await user.update({ status: req.body.status, tokenVersion: nextTokenVersion(user.tokenVersion) });
     await auditService.log({
       userId: req.user?.id,
       action: 'USER_STATUS_CHANGED',

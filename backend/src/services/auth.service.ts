@@ -1,6 +1,7 @@
 import { Role, User } from '../models';
 import { comparePassword, hashPassword } from '../utils/password';
 import { signToken } from '../utils/jwt';
+import { nextTokenVersion } from '../utils/session';
 
 const publicUser = (user: User) => {
   const json = user.toJSON() as unknown as Record<string, unknown>;
@@ -18,7 +19,8 @@ export const authService = {
     if (!valid) return null;
 
     const role = (user as any).role?.name || 'Usuario';
-    const token = signToken({ id: user.id, email: user.email, role, tokenVersion: user.tokenVersion });
+    const tokenVersion = nextTokenVersion(user.tokenVersion) - 1;
+    const token = signToken({ id: user.id, email: user.email, role, tokenVersion });
     return { token, user: publicUser(user) };
   },
 

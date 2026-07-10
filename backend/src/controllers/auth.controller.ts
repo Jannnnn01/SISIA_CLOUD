@@ -6,6 +6,7 @@ import { fail, success } from '../utils/response';
 import { comparePassword, hashPassword } from '../utils/password';
 import { validateEmailPassword } from '../validations/auth.validation';
 import { validatePasswordPolicy } from '../validations/password.validation';
+import { nextTokenVersion } from '../utils/session';
 
 export const authController = {
   async login(req: Request, res: Response) {
@@ -106,7 +107,7 @@ export const authController = {
     const valid = await comparePassword(currentPassword, user.password);
     if (!valid) return fail(res, 'La contraseña actual no es correcta', 400);
 
-    await user.update({ password: await hashPassword(newPassword), tokenVersion: user.tokenVersion + 1 });
+    await user.update({ password: await hashPassword(newPassword), tokenVersion: nextTokenVersion(user.tokenVersion) });
     await auditService.log({
       userId: user.id,
       action: 'PASSWORD_CHANGED',
@@ -128,9 +129,9 @@ export const authController = {
   },
 
   async logout(req: Request, res: Response) {
-    const user = await User.findByPk(req.user?.id);
+    const user = await User.scope('withPassword').findByPk(req.user?.id);
     if (user) {
-      await user.update({ tokenVersion: user.tokenVersion + 1 });
+      await user.update({ tokenVersion: nextTokenVersion(user.tokenVersion) });
     }
     await auditService.log({
       userId: req.user?.id,

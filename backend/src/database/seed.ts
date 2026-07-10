@@ -3,6 +3,7 @@ import { sequelize } from '../config/database';
 import { env } from '../config/env';
 import { Role, User } from '../models';
 import { hashPassword } from '../utils/password';
+import { nextTokenVersion } from '../utils/session';
 import { validatePasswordPolicy } from '../validations/password.validation';
 
 const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -55,7 +56,7 @@ const seed = async () => {
     await admin.update({
       roleId: adminRole.id,
       status: 'activo',
-      ...(shouldRevoke ? { tokenVersion: admin.tokenVersion + 1 } : {})
+      ...(shouldRevoke ? { tokenVersion: nextTokenVersion(admin.tokenVersion) } : {})
     });
     console.log('Usuario administrador existente verificado. La contraseña no fue modificada.');
   } else {
