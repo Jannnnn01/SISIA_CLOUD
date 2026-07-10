@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import { useEmbeddedDatabase } from '../config/env';
 
 export type IncidentStatus = 'pendiente' | 'en_proceso' | 'cerrado' | 'inactivo';
 
@@ -38,7 +39,13 @@ Incident.init(
     description: { type: DataTypes.TEXT, allowNull: false },
     category: { type: DataTypes.STRING(80), allowNull: false },
     priority: { type: DataTypes.STRING(30), allowNull: false },
-    status: { type: DataTypes.ENUM('pendiente', 'en_proceso', 'cerrado', 'inactivo'), allowNull: false, defaultValue: 'pendiente' },
+    status: {
+      type: useEmbeddedDatabase
+        ? DataTypes.STRING(20)
+        : DataTypes.ENUM('pendiente', 'en_proceso', 'cerrado', 'inactivo'),
+      allowNull: false,
+      defaultValue: 'pendiente'
+    },
     createdById: { type: DataTypes.INTEGER, allowNull: false },
     assignedToId: { type: DataTypes.INTEGER, allowNull: true },
     technicalObservation: { type: DataTypes.TEXT, allowNull: true },

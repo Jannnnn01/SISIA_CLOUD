@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const requiredEnv = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'];
+const requiredEnv = ['JWT_SECRET', 'FRONTEND_URL'];
 
 for (const key of requiredEnv) {
   if (!process.env[key]) {
@@ -34,6 +34,8 @@ export const env = {
   registerRateLimitWindowMinutes: Number(process.env.REGISTER_RATE_LIMIT_WINDOW_MINUTES || 60),
   registerRateLimitMax: Number(process.env.REGISTER_RATE_LIMIT_MAX || 10)
 };
+
+export const useEmbeddedDatabase = env.nodeEnv === 'development' && !env.databaseUrl;
 
 try {
   new URL(env.frontendUrl);

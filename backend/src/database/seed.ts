@@ -8,7 +8,7 @@ import { validatePasswordPolicy } from '../validations/password.validation';
 
 const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-const seed = async () => {
+export const seedInitialData = async () => {
   await sequelize.authenticate();
   await sequelize.sync();
 
@@ -33,42 +33,45 @@ const seed = async () => {
     throw new Error('ADMIN_NAME, ADMIN_EMAIL y ADMIN_PASSWORD son obligatorios para ejecutar el seed');
   }
   if (!validateEmail(adminEmail)) {
-    throw new Error('ADMIN_EMAIL no tiene formato válido');
+    throw new Error('ADMIN_EMAIL no tiene formato valido');
   }
   const passwordError = validatePasswordPolicy(adminPassword);
   if (passwordError) {
-    throw new Error(`ADMIN_PASSWORD inválido: ${passwordError}`);
+    throw new Error(`ADMIN_PASSWORD invalido: ${passwordError}`);
   }
 
-  const [admin, created] = await User.findOrCreate({
-    where: { email: adminEmail },
-    defaults: {
+  const admin = await User.scope('withPassword').findOne({ where: { email: adminEmail } });
+
+  if (!admin) {
+    await User.create({
       name: adminName,
       email: adminEmail,
       password: await hashPassword(adminPassword),
       roleId: adminRole.id,
       status: 'activo'
-    }
-  });
-
-  if (!created) {
-    const shouldRevoke = admin.roleId !== adminRole.id || admin.status !== 'activo';
-    await admin.update({
-      roleId: adminRole.id,
-      status: 'activo',
-      ...(shouldRevoke ? { tokenVersion: nextTokenVersion(admin.tokenVersion) } : {})
     });
-    console.log('Usuario administrador existente verificado. La contraseña no fue modificada.');
-  } else {
     console.log('Usuario administrador inicial creado desde variables de entorno.');
+    return;
   }
 
-  console.log('Seed inicial aplicado.');
-  await sequelize.close();
+  const shouldRevoke = admin.roleId !== adminRole.id || admin.status !== 'activo';
+  await admin.update({
+    roleId: adminRole.id,
+    status: 'activo',
+    ...(shouldRevoke ? { tokenVersion: nextTokenVersion(admin.tokenVersion) } : {})
+  });
+  console.log('Usuario administrador existente verificado. La contrasena no fue modificada.');
 };
 
-seed().catch((error) => {
-  console.error('Error ejecutando seed');
-  console.error(error instanceof Error ? error.message : 'Error desconocido');
-  process.exit(1);
-});
+if (require.main === module) {
+  seedInitialData()
+    .then(async () => {
+      console.log('Seed inicial aplicado.');
+      await sequelize.close();
+    })
+    .catch((error) => {
+      console.error('Error ejecutando seed');
+      console.error(error instanceof Error ? error.message : 'Error desconocido');
+      process.exit(1);
+    });
+}

@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import { useEmbeddedDatabase } from '../config/env';
 
 export type UserStatus = 'activo' | 'inactivo';
 
@@ -32,7 +33,11 @@ User.init(
     email: { type: DataTypes.STRING(160), allowNull: false, unique: true, validate: { isEmail: true } },
     password: { type: DataTypes.STRING(255), allowNull: false },
     roleId: { type: DataTypes.INTEGER, allowNull: false },
-    status: { type: DataTypes.ENUM('activo', 'inactivo'), allowNull: false, defaultValue: 'activo' },
+    status: {
+      type: useEmbeddedDatabase ? DataTypes.STRING(20) : DataTypes.ENUM('activo', 'inactivo'),
+      allowNull: false,
+      defaultValue: 'activo'
+    },
     tokenVersion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 }
   },
   {
