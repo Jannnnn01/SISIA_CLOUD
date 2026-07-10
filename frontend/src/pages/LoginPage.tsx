@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Alert } from '../components/ui/Alert';
+import { BrandLogo } from '../components/layout/BrandLogo';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -32,8 +33,8 @@ export const LoginPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md">
         <Card>
-          <h1 className="text-2xl font-semibold text-slate-950">SISIA Cloud</h1>
-          <p className="mt-1 text-sm text-slate-600">Acceso seguro al sistema académico</p>
+          <BrandLogo size="lg" />
+          <p className="mt-4 text-sm text-slate-600">Acceso seguro al sistema académico</p>
           <form className="mt-6 space-y-4" onSubmit={onSubmit}>
             <Alert message={error} />
             <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" required />
