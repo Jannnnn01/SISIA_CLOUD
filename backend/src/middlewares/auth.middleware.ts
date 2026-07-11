@@ -3,6 +3,7 @@ import { Role, User } from '../models';
 import { auditService } from '../services/audit.service';
 import { fail } from '../utils/response';
 import { verifyToken } from '../utils/jwt';
+import { nextTokenVersion } from '../utils/session';
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
@@ -25,7 +26,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       });
       return fail(res, 'Sesión no válida. Inicie sesión nuevamente.', 401);
     }
-    if (user.tokenVersion !== tokenPayload.tokenVersion) {
+    const currentTokenVersion = nextTokenVersion(user.tokenVersion) - 1;
+    if (currentTokenVersion !== tokenPayload.tokenVersion) {
       await auditService.log({
         userId: user.id,
         action: 'ACCESS_REJECTED',
@@ -41,7 +43,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       id: user.id,
       email: user.email,
       role: (user as any).role?.name || 'Usuario',
-      tokenVersion: user.tokenVersion
+      tokenVersion: currentTokenVersion
     };
     return next();
   } catch {

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { BrandLogo } from './BrandLogo';
 import { navItems } from './navItems';
 
 export const Sidebar = () => {
@@ -10,8 +11,7 @@ export const Sidebar = () => {
   return (
     <aside className="hidden min-h-screen w-64 border-r border-slate-200 bg-white p-4 md:block">
       <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-950">SISIA Cloud</h1>
-        <p className="text-xs text-slate-500">Gestión segura académica</p>
+        <BrandLogo />
       </div>
       <nav className="space-y-1">
         {items.map((item) => {
